@@ -22,11 +22,14 @@ Eigen::Matrix4f get_view_matrix(Eigen::Vector3f eye_pos)
 Eigen::Matrix4f get_model_matrix(float rotation_angle)
 {
     Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
-
+    model << 1, 0, 0, 0,
+             0, cos(rotation_angle), -sin(rotation_angle), 0,
+             0, sin(rotation_angle), cos(rotation_angle), 0,
+             0, 0, 0, 1;
     // TODO: Implement this function
     // Create the model matrix for rotating the triangle around the Z axis.
     // Then return it.
-
+    std::cout << "model matrix:" << model << std::endl;
     return model;
 }
 
