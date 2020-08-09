@@ -21,15 +21,21 @@ Eigen::Matrix4f get_view_matrix(Eigen::Vector3f eye_pos)
 
 Eigen::Matrix4f get_model_matrix(float rotation_angle)
 {
+    rotation_angle = rotation_angle * 0.01745329f;
     Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
-    model << 1, 0, 0, 0,
-             0, cos(rotation_angle), -sin(rotation_angle), 0,
-             0, sin(rotation_angle), cos(rotation_angle), 0,
+    /*model << cos(rotation_angle), -sin(rotation_angle), 0, 0,
+             sin(rotation_angle), cos(rotation_angle), 0, 0,
+             0, 0, 1, 0,
+             0, 0, 0, 1;*/
+    model << cos(rotation_angle), 0, sin(rotation_angle), 0,
+             0, 1, 0, 0,
+             -sin(rotation_angle), 0, cos(rotation_angle), 0,
              0, 0, 0, 1;
+               
     // TODO: Implement this function
     // Create the model matrix for rotating the triangle around the Z axis.
     // Then return it.
-    std::cout << "model matrix:" << model << std::endl;
+    //std::cout << "model matrix:" << model << std::endl;
     return model;
 }
 
@@ -37,13 +43,40 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
                                       float zNear, float zFar)
 {
     // Students will implement this function
-
+    zNear = -zNear;
+    zFar = -zFar;
     Eigen::Matrix4f projection = Eigen::Matrix4f::Identity();
+    Eigen::Matrix4f perspective;
+    perspective << zNear, 0, 0, 0,
+                   0, zNear, 0, 0,
+                   0, 0, zNear + zFar, -zNear * zFar,
+                   0, 0, 1, 0;
+    float t = tan( eye_fov * 0.01745329f / 2) * -zNear;
+    float r = t * aspect_ratio;
+    Eigen::Matrix4f translate;
+    translate << 1, 0, 0, 0,
+                 0, 1, 0, 0,
+                 0, 0, 1, -(zNear+zFar)/2,
+                 0, 0, 0, 1;
+    Eigen::Matrix4f ortho;
+    ortho << 1/r, 0, 0, 0,
+             0, 1/t, 0, 0,
+             0, 0, 2 / (zNear - zFar), 0,
+             0, 0, 0, 1;
+    //std::cout << "ortho matrix:\n" << ortho << std::endl;
+    ortho = ortho * translate;
+    //std::cout << "ortho matrix:\n" << ortho << std::endl;
+    //std::cout << "perspective matrix:\n" << perspective << std::endl;
 
+    projection = ortho * perspective;
+    //std::cout << "projection matrix:\n" << projection << std::endl;
     // TODO: Implement this function
     // Create the projection matrix for the given parameters.
     // Then return it.
-
+    Eigen::Vector4f v = Eigen::Vector4f(0,0,-50,1);
+    v = projection * v;
+    //std::cout << "v:\n" << v << std::endl;
+    
     return projection;
 }
 
@@ -67,7 +100,7 @@ int main(int argc, const char** argv)
 
     Eigen::Vector3f eye_pos = {0, 0, 5};
 
-    std::vector<Eigen::Vector3f> pos{{2, 0, -2}, {0, 2, -2}, {-2, 0, -2}};
+    std::vector<Eigen::Vector3f> pos{{2, 0, -0.2}, {0, 2, -0.2}, {-2, 0, -0.2}};
 
     std::vector<Eigen::Vector3i> ind{{0, 1, 2}};
 
