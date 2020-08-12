@@ -40,7 +40,7 @@ auto to_vec4(const Eigen::Vector3f& v3, float w = 1.0f)
 }
 
 
-static bool insideTriangle(int x, int y, const Vector3f* _v)
+static bool insideTriangle(float x, float y, const Vector3f* _v)
 {   
     Vector3f uv(x, y, 0.0);
     // TODO : Implement this function to check if the point (x, y) is inside the triangle represented by _v[0], _v[1], _v[2]
@@ -144,25 +144,37 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
     int minY = floorl(min(min(v[0].y(), v[1].y()), v[2].y()));
     int maxX = ceil(max(max(v[0].x(), v[1].x()), v[2].x()));
     int maxY = ceil(max(max(v[0].y(), v[1].y()), v[2].y()));
-
+    float step = 1.0f / msaa_cnt;
+    float val_step = 1.0f / (msaa_cnt * msaa_cnt);
     // TODO : Find out the bounding box of current triangle.
     // iterate through the pixel and find if the current pixel is inside the triangle
     for(int x = minX; x <= maxX; x++)
     {
         for(int y = minY; y <= maxY; y++)
         {
-            if(insideTriangle(x, y, t.v))
+            float coeff = 0.0f;
+            Vector3f uv = Vector3f(x, y, 1);                        
+            for(int i = 0; i < msaa_cnt; i++)
             {
-                // If so, use the following code to get the interpolated z value.
-                auto[alpha, beta, gamma] = computeBarycentric2D(x, y, t.v);
-                float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
-                float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
-                z_interpolated *= w_reciprocal;
+                for(int j = 0; j < msaa_cnt; j++)
+                {
+                    float x2 = x + i * step;
+                    float y2 = y + j * step;
+                    if(insideTriangle(x2, y2, t.v))
+                    {
+                        // If so, use the following code to get the interpolated z value.
+                        auto[alpha, beta, gamma] = computeBarycentric2D(x2, y2, t.v);
+                        float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
+                        float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
+                        z_interpolated *= w_reciprocal;
 
-                Vector3f uv = Vector3f(x, y, 1);
-                if(set_depth(uv, z_interpolated))
-                    set_pixel(uv, t.getColor());
+                        if(set_depth(uv, z_interpolated, i, j))
+                            coeff += val_step;
+                    }
+                }                
             }
+            if(coeff > 0)
+                set_pixel(uv, t.getColor() * coeff);
         }
     }
     
@@ -202,10 +214,10 @@ void rst::rasterizer::clear(rst::Buffers buff)
     }
 }
 
-rst::rasterizer::rasterizer(int w, int h) : width(w), height(h)
+rst::rasterizer::rasterizer(int w, int h, int msaa) : width(w), height(h), msaa_cnt(msaa)
 {
     frame_buf.resize(w * h);
-    depth_buf.resize(w * h);
+    depth_buf.resize(w * h * msaa * msaa);
 }
 
 int rst::rasterizer::get_index(int x, int y)
@@ -221,9 +233,9 @@ void rst::rasterizer::set_pixel(const Eigen::Vector3f& point, const Eigen::Vecto
 
 }
 
-bool rst::rasterizer::set_depth(const Eigen::Vector3f& point, float depth)
+bool rst::rasterizer::set_depth(const Eigen::Vector3f& point, float depth, int offsetX, int offsetY)
 {
-    auto ind = (height-1-point.y())*width + point.x();
+    auto ind = (height-1-point.y())*width*msaa_cnt*msaa_cnt + offsetY*width*msaa_cnt + point.x() * msaa_cnt + offsetX;
     if(depth < depth_buf[ind])
     {
         depth_buf[ind] = depth;
