@@ -42,7 +42,25 @@ auto to_vec4(const Eigen::Vector3f& v3, float w = 1.0f)
 
 static bool insideTriangle(int x, int y, const Vector3f* _v)
 {   
+    Vector3f uv(x, y, 0.0);
     // TODO : Implement this function to check if the point (x, y) is inside the triangle represented by _v[0], _v[1], _v[2]
+    Vector3f p0p1 = _v[1] - _v[0];
+    Vector3f p0q = uv - _v[0];
+    auto c1 = p0p1.cross(p0q).z();
+
+    Vector3f p1p2 = _v[2] - _v[1];
+    Vector3f p1q = uv - _v[1];
+    auto c2 = p1p2.cross(p1q).z();
+
+    Vector3f p2p0 = _v[0] - _v[2];
+    Vector3f p2q = uv - _v[2];
+    auto c3 = p2p0.cross(p2q).z();
+
+    if(c1 <= 0 && c2 <= 0 && c3 <= 0)
+        return true; 
+    else if(c1 > 0 && c2 >0 && c3 > 0)
+        return true;
+    return false;
 }
 
 static std::tuple<float, float, float> computeBarycentric2D(float x, float y, const Vector3f* v)
@@ -102,10 +120,42 @@ void rst::rasterizer::draw(pos_buf_id pos_buffer, ind_buf_id ind_buffer, col_buf
     }
 }
 
+float min(float a, float b)
+{
+    if(a <= b)
+        return a;
+    else
+        return b;
+}
+
+float max(float a, float b)
+{
+    if(a > b)
+        return a;
+    else
+        return b;
+}
+
 //Screen space rasterization
 void rst::rasterizer::rasterize_triangle(const Triangle& t) {
     auto v = t.toVector4();
     
+    int minX = floorl(min(min(v[0].x(), v[1].x()), v[2].x()));
+    int minY = floorl(min(min(v[0].y(), v[1].y()), v[2].y()));
+    int maxX = ceil(max(max(v[0].x(), v[1].x()), v[2].x()));
+    int maxY = ceil(max(max(v[0].y(), v[1].y()), v[2].y()));
+    
+    for(int x = minX; x <= maxX; x++)
+    {
+        for(int y = minY; y <= maxY; y++)
+        {
+            if(insideTriangle(x, y, t.v))
+            {
+                Vector3f uv = Vector3f(x, y, 1);
+                set_pixel(uv, t.getColor());
+            }
+        }
+    }
     // TODO : Find out the bounding box of current triangle.
     // iterate through the pixel and find if the current pixel is inside the triangle
 
