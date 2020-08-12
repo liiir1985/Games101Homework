@@ -67,6 +67,7 @@ namespace rst
         void set_projection(const Eigen::Matrix4f& p);
 
         void set_pixel(const Eigen::Vector3f& point, const Eigen::Vector3f& color);
+        bool set_depth(const Eigen::Vector3f& point, float depth);
 
         void clear(Buffers buff);
 
