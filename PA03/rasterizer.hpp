@@ -60,7 +60,7 @@ namespace rst
     class rasterizer
     {
     public:
-        rasterizer(int w, int h);
+        rasterizer(int w, int h, int msaa);
         pos_buf_id load_positions(const std::vector<Eigen::Vector3f>& positions);
         ind_buf_id load_indices(const std::vector<Eigen::Vector3i>& indices);
         col_buf_id load_colors(const std::vector<Eigen::Vector3f>& colors);
@@ -75,6 +75,7 @@ namespace rst
         void set_vertex_shader(std::function<Eigen::Vector3f(vertex_shader_payload)> vert_shader);
         void set_fragment_shader(std::function<Eigen::Vector3f(fragment_shader_payload)> frag_shader);
 
+        const Eigen::Vector3f& get_pixel(const Vector2i &point);
         void set_pixel(const Vector2i &point, const Eigen::Vector3f &color);
 
         void clear(Buffers buff);
@@ -111,8 +112,8 @@ namespace rst
         std::vector<Eigen::Vector3f> frame_buf;
         std::vector<float> depth_buf;
         int get_index(int x, int y);
-
-        int width, height;
+        bool set_depth(const Eigen::Vector2i& point, float depth, int offsetX, int offsetY);
+        int width, height, msaa_cnt;
 
         int next_id = 0;
         int get_next_id() { return next_id++; }

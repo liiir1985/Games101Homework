@@ -50,7 +50,37 @@ Eigen::Matrix4f get_model_matrix(float angle)
 Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio, float zNear, float zFar)
 {
     // TODO: Use the same projection matrix from the previous assignments
+    //zNear = -zNear;
+    //zFar = -zFar;
+    Eigen::Matrix4f projection = Eigen::Matrix4f::Identity();
+    Eigen::Matrix4f perspective;
+    perspective << zNear, 0, 0, 0,
+                   0, zNear, 0, 0,
+                   0, 0, zNear + zFar, -zNear * zFar,
+                   0, 0, 1, 0;
+    float t = tan( eye_fov * 0.01745329f / 2) * -zNear;
+    float r = t * aspect_ratio;
+    Eigen::Matrix4f translate;
+    translate << 1, 0, 0, 0,
+                 0, 1, 0, 0,
+                 0, 0, 1, -(zNear+zFar)/2,
+                 0, 0, 0, 1;
+    Eigen::Matrix4f ortho;
+    ortho << 1/r, 0, 0, 0,
+             0, 1/t, 0, 0,
+             0, 0, 2 / (zNear - zFar), 0,
+             0, 0, 0, 1;
+    //std::cout << "ortho matrix:\n" << ortho << std::endl;
+    ortho = ortho * translate;
+    //std::cout << "ortho matrix:\n" << ortho << std::endl;
+    //std::cout << "perspective matrix:\n" << perspective << std::endl;
 
+    projection = ortho * perspective;
+    //std::cout << "projection matrix:\n" << projection << std::endl;
+    // TODO: Implement this function
+    // Create the projection matrix for the given parameters.
+    // Then return it.
+    return projection;
 }
 
 Eigen::Vector3f vertex_shader(const vertex_shader_payload& payload)
@@ -84,7 +114,7 @@ Eigen::Vector3f texture_fragment_shader(const fragment_shader_payload& payload)
     if (payload.texture)
     {
         // TODO: Get the texture value at the texture coordinates of the current fragment
-
+        return_color = payload.texture->getColor(payload.tex_coords.x(), payload.tex_coords.y());
     }
     Eigen::Vector3f texture_color;
     texture_color << return_color.x(), return_color.y(), return_color.z();
@@ -247,10 +277,10 @@ int main(int argc, const char** argv)
 
     std::string filename = "output.png";
     objl::Loader Loader;
-    std::string obj_path = "../models/spot/";
+    std::string obj_path = "models/spot/";
 
     // Load .obj File
-    bool loadout = Loader.LoadFile("../models/spot/spot_triangulated_good.obj");
+    bool loadout = Loader.LoadFile("models/spot/spot_triangulated_good.obj");
     for(auto mesh:Loader.LoadedMeshes)
     {
         for(int i=0;i<mesh.Vertices.size();i+=3)
@@ -266,12 +296,12 @@ int main(int argc, const char** argv)
         }
     }
 
-    rst::rasterizer r(700, 700);
+    rst::rasterizer r(700, 700, 1);
 
     auto texture_path = "hmap.jpg";
     r.set_texture(Texture(obj_path + texture_path));
 
-    std::function<Eigen::Vector3f(fragment_shader_payload)> active_shader = phong_fragment_shader;
+    std::function<Eigen::Vector3f(fragment_shader_payload)> active_shader = normal_fragment_shader;
 
     if (argc >= 2)
     {
@@ -352,11 +382,11 @@ int main(int argc, const char** argv)
 
         if (key == 'a' )
         {
-            angle -= 0.1;
+            angle -= 10;
         }
         else if (key == 'd')
         {
-            angle += 0.1;
+            angle += 10;
         }
 
     }
