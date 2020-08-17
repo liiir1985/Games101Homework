@@ -264,6 +264,15 @@ T interpolateVector(const T* vec, float alpha, float beta, float gamma)
     return z_interpolated;
 }
 
+template <class T>
+T interpolateVectorArray(const std::array<T, 3>& vec, float alpha, float beta, float gamma)
+{
+    //float w_reciprocal = 1.0/(alpha / vec[0].w() + beta / v[1].w() + gamma / v[2].w());
+    T z_interpolated = alpha * vec[0] + beta * vec[1] + gamma * vec[2];
+    //z_interpolated *= w_reciprocal;
+    return z_interpolated;
+}
+
 float min(float a, float b)
 {
     if(a <= b)
@@ -327,6 +336,7 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t, const std::array<Eig
                 interpolated_color = interpolateVector<Vector3f>(t.color, alpha, beta, gamma);
                 interpolated_normal = interpolateVector<Vector3f>(t.normal, alpha, beta, gamma);
                 interpolated_texcoords = interpolateVector<Vector2f>(t.tex_coords, alpha, beta, gamma);
+                interpolated_shadingcoords = interpolateVectorArray<Vector3f>(view_pos, alpha, beta, gamma);
                 fragment_shader_payload payload( interpolated_color, interpolated_normal.normalized(), interpolated_texcoords, texture ? &*texture : nullptr);
                 payload.view_pos = interpolated_shadingcoords;
                 auto pixel_color = fragment_shader(payload);

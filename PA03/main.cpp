@@ -148,6 +148,15 @@ Eigen::Vector3f texture_fragment_shader(const fragment_shader_payload& payload)
     return result_color * 255.f;
 }
 
+float saturate(float val)
+{
+    if(val < 0)
+        val = 0;
+    if(val > 1)
+        val = 1;
+    return val;
+}
+
 Eigen::Vector3f phong_fragment_shader(const fragment_shader_payload& payload)
 {
     Eigen::Vector3f ka = Eigen::Vector3f(0.005, 0.005, 0.005);
@@ -167,9 +176,19 @@ Eigen::Vector3f phong_fragment_shader(const fragment_shader_payload& payload)
     Eigen::Vector3f point = payload.view_pos;
     Eigen::Vector3f normal = payload.normal;
 
-    Eigen::Vector3f result_color = {0, 0, 0};
+    Eigen::Vector3f result_color = (amb_light_intensity / 255.f);// {0,0,0};//amb_light_intensity;
     for (auto& light : lights)
     {
+        auto L = light.position - point;
+        auto intensity = light.intensity / L.dot(L);
+        auto NdotL = saturate(normal.dot(L.normalized()));
+        auto diffuse = NdotL * intensity.cwiseProduct(color);
+        auto V = (eye_pos - point).normalized();
+        auto H = (V + L.normalized()).normalized();
+        auto NdotH = saturate(normal.dot(H));
+        auto specular = ks.cwiseProduct(intensity) *  pow(NdotH, p);
+        result_color += diffuse + specular;
+        //result_color += specular;
         // TODO: For each light source in the code, calculate what the *ambient*, *diffuse*, and *specular* 
         // components are. Then, accumulate that result on the *result_color* object.
         
@@ -301,7 +320,7 @@ int main(int argc, const char** argv)
     auto texture_path = "hmap.jpg";
     r.set_texture(Texture(obj_path + texture_path));
 
-    std::function<Eigen::Vector3f(fragment_shader_payload)> active_shader = normal_fragment_shader;
+    std::function<Eigen::Vector3f(fragment_shader_payload)> active_shader = phong_fragment_shader;
 
     if (argc >= 2)
     {
