@@ -48,8 +48,8 @@ public:
         auto cuv1 = lerp(image_data.at<cv::Vec3b>(v1,u0), image_data.at<cv::Vec3b>(v1,u1), u_img - u0);
         auto cFinal = lerp(cuv0, cuv1, v_img - v0);
         return cFinal;
-        auto color = image_data.at<cv::Vec3b>(v_img, u_img);
-        return Eigen::Vector3f(color[0], color[1], color[2]);
+        //auto color = image_data.at<cv::Vec3b>(v_img, u_img);
+        //return Eigen::Vector3f(color[0], color[1], color[2]);
     }
 
 };
